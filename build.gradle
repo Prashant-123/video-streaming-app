@@ -18,7 +18,7 @@ buildscript {
     ext.hilt_version = "2.31.2-alpha"
     ext.hilt_extensions_version = "1.0.0-alpha03"
     ext.lottie_version = "3.4.1"
-    ext.exoplayer_version = "2.13.2"
+    ext.exoplayer_version = "2.11.7"
     repositories {
         google()
         jcenter()

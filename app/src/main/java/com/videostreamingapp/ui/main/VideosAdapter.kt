@@ -1,58 +1,67 @@
 package com.videostreamingapp.ui.main
 
-import android.net.Uri
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.exoplayer2.ExoPlaybackException
 import com.google.android.exoplayer2.Player
-import com.google.android.exoplayer2.SimpleExoPlayer
-import com.google.android.exoplayer2.source.MediaSource
-import com.google.android.exoplayer2.source.ProgressiveMediaSource
-import com.google.android.exoplayer2.upstream.DataSource
-import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.videostreamingapp.R
 import com.videostreamingapp.databinding.ItemVideoBinding
+import com.videostreamingapp.utils.PlayerStateCallback
 
 
-class VideosAdapter(private var itemList: ArrayList<String> = ArrayList()) :
+class VideosAdapter(private var itemList: ArrayList<String> = ArrayList(), private var listener: Listener) :
     RecyclerView.Adapter<VideosAdapter.MyViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MyViewHolder {
-        val binding = ItemVideoBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        val binding: ItemVideoBinding = DataBindingUtil.inflate(LayoutInflater.from(parent.context), R.layout.item_video, parent, false)
         return MyViewHolder(binding)
     }
 
     override fun onBindViewHolder(holder: MyViewHolder, position: Int) =
-        holder.initializePlayer(itemList[position])
+        holder.bind(itemList[position])
+
+    override fun onViewDetachedFromWindow(holder: MyViewHolder) {
+        super.onViewDetachedFromWindow(holder)
+        listener.onPause(holder.binding)
+
+    }
+
+    override fun onViewAttachedToWindow(holder: MyViewHolder) {
+        super.onViewAttachedToWindow(holder)
+        listener.onResume(holder.binding)
+    }
 
     override fun getItemCount(): Int = itemList.size
 
-    inner class MyViewHolder(private val itemVideoBinding: ItemVideoBinding) :
-        RecyclerView.ViewHolder(itemVideoBinding.root) {
-        private lateinit var simpleExoPlayer: SimpleExoPlayer
-        private val context = itemVideoBinding.root.context
-        private val dataSourceFactory: DataSource.Factory =
-            DefaultDataSourceFactory(context, "exoplayer")
+    class MyViewHolder(var binding: ItemVideoBinding) :
+        RecyclerView.ViewHolder(binding.root), PlayerStateCallback {
+        override fun onVideoDurationRetrieved(duration: Long, player: Player) {
 
-        private fun buildMediaSource(uri: Uri): MediaSource {
-            return ProgressiveMediaSource.Factory(dataSourceFactory)
-                .createMediaSource(uri)
         }
 
-        fun initializePlayer(videoUrl: String) {
-            simpleExoPlayer = SimpleExoPlayer.Builder(context).build()
-            preparePlayer(videoUrl)
-            simpleExoPlayer.playWhenReady = true
-            simpleExoPlayer.addListener(this)
-            itemVideoBinding.exoplayerView.player = simpleExoPlayer
+        override fun onVideoBuffering(player: Player) {
+            binding.progressBar.visibility = View.VISIBLE
         }
 
-        private fun preparePlayer(videoUrl: String) {
-            val uri = Uri.parse(videoUrl)
-            val mediaSource = buildMediaSource(uri)
-            simpleExoPlayer.setMediaSource(mediaSource)
+        override fun onStartedPlaying(player: Player) {
+            binding.progressBar.visibility = View.GONE
         }
+
+        override fun onFinishedPlaying(player: Player) {
+        }
+
+        fun bind(videoUrl: String) {
+            with(binding) {
+                url = videoUrl
+                listener = this@MyViewHolder
+            }
+        }
+    }
+
+    interface Listener {
+        fun onPause(binding: ItemVideoBinding)
+        fun onResume(binding: ItemVideoBinding)
     }
 }
